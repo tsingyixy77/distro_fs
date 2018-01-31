@@ -11,14 +11,28 @@ class message {
         virtual MSG_TYPE get_type() = 0;
         virtual void build_message() = 0;
 };
-class ascii_message : public message{
+class ascii_message{
     public:
         ascii_message(MSG_TYPE type,string body):type_(type),body_(body){}
         ascii_message(){}
-        friend ostream& operator<<(std::ostream& os,ascii_message& msg);
-        friend istream& operator>>(std::istream& is,ascii_message& msg);
-        virtual MSG_TYPE get_type() override;
-        virtual void build_message() override;
+        friend std::ostream& operator<<(std::ostream& os,ascii_message& msg);
+        friend std::istream& operator>>(std::istream& is,ascii_message& msg);
+		/*
+        friend std::ostream& operator<<(std::ostream& os,ascii_message& msg){
+			int type = static_cast<int>(msg.type_);
+			os<<type<<msg.body_;
+			return os;
+		}
+        friend std::istream& operator>>(std::istream& is,ascii_message& msg){
+			int type;
+			is>>type;
+			is>>msg.body_;
+			msg.type_ = static_cast<MSG_TYPE>(type);
+			return is;
+		}
+		*/
+        MSG_TYPE get_type();
+        void build_message();
         void show(){
             cout<<"TYPE : ";
             switch(type_){

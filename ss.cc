@@ -17,7 +17,7 @@ void server::accept(){
                         is>>msg;
 
                         if (msg.get_type() == MSG_TYPE::OTHER)
-                            cout<<"read other things"<<endl;
+                            cout<<"read other things "<<msg<<endl;
 
                         sock->async_write_some(buf.data(),
                         [](const asio::error_code& ec, size_t n){
