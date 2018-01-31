@@ -1,2 +1,2 @@
-server=Program(['ss.cc'])
-client=Program(['cc.cc'])
+server=Program(['ss.cc','msg.cc'])
+client=Program(['cc.cc','msg.cc'])

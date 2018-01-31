@@ -5,6 +5,48 @@ using namespace std;
 using namespace asio;
 using namespace asio::ip;
 
+enum class MSG_TYPE { ADD,DEL,WRITE,READ,REG,OTHER};
+class message {
+    public:
+        virtual MSG_TYPE get_type() = 0;
+        virtual void build_message() = 0;
+};
+class ascii_message : public message{
+    public:
+        ascii_message(MSG_TYPE type,string body):type_(type),body_(body){}
+        ascii_message(){}
+        friend ostream& operator<<(std::ostream& os,ascii_message& msg);
+        friend istream& operator>>(std::istream& is,ascii_message& msg);
+        virtual MSG_TYPE get_type() override;
+        virtual void build_message() override;
+        void show(){
+            cout<<"TYPE : ";
+            switch(type_){
+                case MSG_TYPE::ADD:
+                    cout<<"ADD";
+                    break;
+                case MSG_TYPE::DEL:
+                    cout<<"DEL";
+                    break;
+                case MSG_TYPE::WRITE:
+                    cout<<"WRITE";
+                    break;
+                case MSG_TYPE::READ:
+                    cout<<"READ";
+                    break;
+                case MSG_TYPE::REG:
+                    cout<<"REG";
+                    break;
+                default:
+                    cout<<"OTHER";
+                    break;
+            }
+            cout<<"Body : "<< body_ <<endl;
+        }
+    private:
+        MSG_TYPE type_;
+        string body_;
+};
 class server {
 	public:
 		server(short port=12345):acceptor_(io_,tcp::endpoint(tcp::v4(),port)){
@@ -13,31 +55,12 @@ class server {
 		void run(){
 			io_.run();
 		}
-		void accept(){
-			shared_ptr<tcp::socket> sock(new tcp::socket(io_));
-			acceptor_.async_accept(*sock,
-								[=](const asio::error_code& ec){
-									if (!ec){
-										cout<<"connect from "<<sock->remote_endpoint().address()<<endl;
-
-										sock->async_read_some(buffer(buf),
-															[=](const asio::error_code& ec,size_t n){
-																cout<<"read "<<n<<" bytes"<<endl;
-																cout<<buf<<endl;
-
-																sock->async_write_some(buffer(buf),
-																[](const asio::error_code& ec, size_t n){
-																	cout<<"send " << n << " bytes";
-																});
-															});
-									accept();
-								}
-							});
-		}
+		void accept();
 	private:
 		io_service io_;
 		tcp::acceptor acceptor_;
-		char buf[1024];
+		//char buf[1024];
+        asio::streambuf buf;
 };
 class client {
 	public:
@@ -46,12 +69,20 @@ class client {
 			sock_->connect(endpoint_);
 		}
 		void read(){
-			char buf[512];
-			sock_->read_some(buffer(buf));
-			cout<< "received from server [" << buf << "]" <<endl;
+            asio::streambuf buf;
+			size_t n = sock_->read_some(buf.prepare(64));
+            buf.commit(n);
+            std::ostream os(&buf);
+            ascii_message msg;
+            os<<msg;
+            msg.show();
 		}
-		void write(string msg){
-			sock_->write_some(buffer(msg));
+		void write(string str){
+            asio::streambuf sb;
+            ostream os(&sb);
+            ascii_message msg(MSG_TYPE::OTHER,str);
+            os<<msg<<endl;
+			sock_->write_some(sb.data());
 		}
 		void run(){
 			io_.run();
