@@ -3,11 +3,10 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "message.hpp"
+#include "message.h"
 
 using namespace asio::ip;
 using namespace std;
-const int max_message_length = 512;
 
 class FileService {
     public:
@@ -27,6 +26,7 @@ class FileService {
 class session : public std::enable_shared_from_this<session> {
     public:
         session(tcp::socket socket):socket_(std::move(socket)){
+			cout<<"starting to process....."<<endl;
         }
 
         void start(){
@@ -34,13 +34,19 @@ class session : public std::enable_shared_from_this<session> {
         }
         void receive_message(){
             auto self(shared_from_this());
-            asio::async_read(socket_,
-                    asio::buffer(data_),
+            socket_.async_read_some(
+                    asio::buffer(data_,128),
                     [this,self](std::error_code ec,std::size_t){
                         if (!ec){
+							size_t p1 = asio::buffer_size(asio::buffer(data_));
+							cout<<"processing message ..."<<endl;
+							cout<<p1<<endl;
                             message msg(data_);
                             process_message(msg);
                         }
+						else {
+							cout<<"error occurred"<<endl;
+						}
                     });
         }
         void process_message(message msg){
@@ -61,8 +67,9 @@ class session : public std::enable_shared_from_this<session> {
         void response(string filename){
             auto self(shared_from_this());
             message msg(6,"received the request for file" + filename);
+			memcpy(data_,msg.data(),msg.length());
             asio::async_write(socket_,
-                    asio::buffer(msg.data()),
+                    asio::buffer(data_),
                     [this,self](std::error_code ec,std::size_t){
                         if (!ec){
                             std::cout<<"send successfully to "<< socket_.remote_endpoint().address()<<std::endl;
@@ -72,12 +79,12 @@ class session : public std::enable_shared_from_this<session> {
         }
     private:
         tcp::socket socket_;
-        char data_[max_message_length];
+        char data_[128];
 
 };
 class server{
     public:
-        server(io_service& io,const tcp::endpoint& ep):acceptor_(io,dp),socket_(io_service){
+        server(asio::io_service& io,const tcp::endpoint& ep):acceptor_(io,ep),socket_(io){
             do_accept();
         }
 
@@ -95,6 +102,10 @@ class server{
         tcp::socket socket_;
 };
 int main(){
+	asio::io_service io;
+	tcp::endpoint ep(tcp::v4(),8081);
+	server s(io,ep);
+	io.run();
     return 0;
 }
 
