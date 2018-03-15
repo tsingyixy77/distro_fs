@@ -1,6 +1,6 @@
 #include <iostream>
 #include <msgpack.hpp>
-#include <glog/logging.h>
+//#include <glog/logging.h>
 
 using namespace std;
 namespace mp=msgpack;
@@ -21,7 +21,6 @@ class message {
             char header[5];
             strncpy(header,data_,4);
             auto size = atoi(header);
-			cout<<size<<" bytes"<<endl;
             mp::object_handle hdl = 
                 mp::unpack(data_+4,size);
             *this = hdl.get().as<message>();
@@ -34,6 +33,12 @@ class message {
         message(char* data){
 			sprintf(data_,"%s",data);
             decode();
+        }
+        friend ostream& operator<<(ostream& os, message& msg){
+            cout<<msg.type()<<endl;
+            cout<<msg.file()<<endl;
+            os<<"[type:"<<msg.type()<<", body:"<<msg.file()<<"]";
+            return os;
         }
 
         const int type(){return type_;}
