@@ -94,7 +94,7 @@ class server{
             acceptor_.async_accept(socket_,
                     [this](std::error_code ec){
                         if (!ec){
-                            info<<"create new connection w/i "<<socket_.remote_endpoint().address()<<endl;
+                            info<<"create new connection w/i "<<socket_.remote_endpoint().address()<<":"<<socket_.remote_endpoint().port()<<endl;
                             std::make_shared<session>(std::move(socket_))->start();
                         }
                         do_accept();
@@ -105,6 +105,7 @@ class server{
         tcp::socket socket_;
 };
 int main(){
+    FLAGS_log_dir="./";
     google::InitGoogleLogging(__FILE__);
     asio::io_service io;
     tcp::endpoint ep(tcp::v4(),8081);

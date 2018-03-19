@@ -34,6 +34,7 @@ class client {
 };
 
 int main(){
+    FLAGS_log_dir = "./";
     google::InitGoogleLogging(__FILE__);
     client cc;
     tcp::endpoint ep(tcp::v4(),8081);

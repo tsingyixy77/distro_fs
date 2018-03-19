@@ -30,7 +30,7 @@ class message {
         message():length_(0){}
         message(int type,string filename)
             :type_(type),filename_(filename),length_(0){}
-        message(char* data){
+        message(const char* data){
 			sprintf(data_,"%s",data);
             decode();
         }
