@@ -9,22 +9,6 @@
 using namespace asio::ip;
 using namespace std;
 #define info LOG(INFO)
-
-class FileService {
-    public:
-        void register_client(tcp::endpoint ep){
-            clients.push_back(ep);
-        }
-        void create_new_file(string filename){
-        }
-        void query_file(string filename){
-        }
-        void read_file(string filename){
-        }
-    private:
-        std::map<string,tcp::endpoint> files_to_client_;
-        vector<tcp::endpoint> clients;
-};
 class session : public std::enable_shared_from_this<session> {
     public:
         session(tcp::socket socket):socket_(std::move(socket)){
@@ -84,6 +68,49 @@ class session : public std::enable_shared_from_this<session> {
         char data_[128];
 
 };
+class FileSession : public std::enable_shared_from_this<FileSession>{
+    public:
+        FileSession(tcp::socket socket):socket_(std::move(socket)){
+            info<<"(FS)starting to process....."<<endl;
+        }
+        void start(){
+            receive_messages();
+        }
+        void receive_messages(){
+            auto self(shared_from_this());
+            socket_.async_read_some(
+                    asio::buffer(data_,128),
+                    [this,self](std::error_code ec,std::size_t){
+                        if (!ec){
+                            info<<"processing message ..."<<endl;
+                            message msg(data_);
+                            process_message(msg);
+                        }
+                        else {
+                            cout<<"error occurred"<<endl;
+                        }
+                        receive_message();
+                    });
+        }
+        void process_messages(message msg){
+            int type = msg.type();
+            switch (type) {
+                case 0 : //ADD
+                    fs_.add(msg.file(),socket_.remote_endpoint())
+                    break;
+                case 1 : //Query
+                    auto ep = fs_.query(msg.file());
+                    break;
+                default : 
+                    cout<<"waiting for more operation"
+                    break;
+            }
+        }
+    private:
+        tcp::socket socket_;
+        static FileService fs_;
+};
+template <class T=session>
 class server{
     public:
         server(asio::io_service& io,const tcp::endpoint& ep):acceptor_(io,ep),socket_(io){
@@ -95,7 +122,7 @@ class server{
                     [this](std::error_code ec){
                         if (!ec){
                             info<<"create new connection w/i "<<socket_.remote_endpoint().address()<<":"<<socket_.remote_endpoint().port()<<endl;
-                            std::make_shared<session>(std::move(socket_))->start();
+                            std::make_shared<T>(std::move(socket_))->start();
                         }
                         do_accept();
                     });
@@ -109,7 +136,7 @@ int main(){
     google::InitGoogleLogging(__FILE__);
     asio::io_service io;
     tcp::endpoint ep(tcp::v4(),8081);
-    server s(io,ep);
+    server<> s(io,ep);
     io.run();
     return 0;
 }
